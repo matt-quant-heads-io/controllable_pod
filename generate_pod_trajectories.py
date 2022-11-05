@@ -4,6 +4,7 @@ import time
 from gym_pcgrl.envs.probs.zelda_prob import ZeldaProblem
 from gym_pcgrl.envs.reps.narrow_rep import NarrowRepresentation
 import csv
+from collections import OrderedDict
 
 import hashlib
 import numpy as np
@@ -16,64 +17,8 @@ from gym.envs.classic_control import rendering
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.pcgrl_env import PcgrlEnv
 import pandas as pd
-
-
+from constants import *
 import sys
-
-
-
-# Reverse the k,v in TILES MAP for persisting back as char map .txt format
-REV_TILES_MAP = { "door": "g",
-                  "key": "+",
-                  "player": "A",
-                  "bat": "1",
-                  "spider": "2",
-                  "scorpion": "3",
-                  "solid": "w",
-                  "empty": "."}
-
-TILES_MAP = {"g": "door",
-             "+": "key",
-             "A": "player",
-             "1": "bat",
-             "2": "spider",
-             "3": "scorpion",
-             "w": "solid",
-             ".": "empty"}
-
-TILES_MAP = {"g": "door",
-             "+": "key",
-             "A": "player",
-             "1": "bat",
-             "2": "spider",
-             "3": "scorpion",
-             "w": "solid",
-             ".": "empty"}
-
-INT_MAP = {
-    "empty": 0,
-    "solid": 1,
-    "player": 2,
-    "key": 3,
-    "door": 4,
-    "bat": 5,
-    "scorpion": 6,
-    "spider": 7
-}
-
-REV_INT_MAP = {v:k for k,v in INT_MAP.items()}
-
-# For hashing maps to avoid duplicate goal states
-CHAR_MAP = {"door": 'a',
-            "key": 'b',
-            "player": 'c',
-            "bat": 'd',
-            "spider": 'e',
-            "scorpion": 'f',
-            "solid": 'g',
-            "empty": 'h'}
-
-
 
 # Reads in .txt playable map and converts it to string[][]
 def to_2d_array_level(file_name):
@@ -304,7 +249,7 @@ def generate_pod_greedy(env, random_target_map, goal_starting_map, total_steps, 
     """
 
     play_trace = []
-    # loop through from 0 to 13 (for 14 tile change actions)
+    map_stat = []
     old_map = goal_starting_map.copy()
     random_map = random_target_map.copy()
 
@@ -328,17 +273,16 @@ def generate_pod_greedy(env, random_target_map, goal_starting_map, total_steps, 
 
         new_map[row_idx] = old_map[row_idx].copy()
 
-
-        # TODO: change this to select new tile via:
-        # TODO: sample an action
-        # TODO: check if it gets us closer to starting distribution
-        # TODO: if no then scratch action, if yes then continue
-
-        # existing tile type on the goal map
         old_tile_type = old_map[row_idx][col_idx]
-
-        # new destructive tile
         new_tile_type = random_target_map[row_idx][col_idx]
+
+        string_map_for_map_stats = str_arr_from_int_arr(new_map)
+        new_map_stats_dict = env._prob.get_stats(string_map_for_map_stats)
+
+        num_regions = new_map_stats_dict['regions']
+        num_enemies = new_map_stats_dict['enemies']
+        nearest_enemy = new_map_stats_dict['nearest-enemy']
+        path_length = new_map_stats_dict['path-length']
 
         expert_action = [row_idx, col_idx, old_tile_type]
         destructive_action = [row_idx, col_idx, new_tile_type]
@@ -346,8 +290,7 @@ def generate_pod_greedy(env, random_target_map, goal_starting_map, total_steps, 
         transition_info_at_step[2] = expert_action.copy()
         new_map[row_idx][col_idx] = new_tile_type
 
-
-        # play_trace.append((transform(old_map.copy(), col_idx,  row_idx, crop_size), expert_action.copy()))
+        map_stat.append((num_regions, num_enemies, nearest_enemy, path_length))
         play_trace.append((transform(random_map.copy(), col_idx, row_idx, crop_size), expert_action.copy()))
         random_map[row_idx][col_idx] = old_tile_type
         curr_step += 1
@@ -366,15 +309,15 @@ def generate_pod_greedy(env, random_target_map, goal_starting_map, total_steps, 
         hamm = compute_hamm_dist(random_target_map, old_map)
         if hamm == 0.0:
             play_trace.reverse()
-            return play_trace, total_steps
+            map_stat.reverse()
+            return play_trace, total_steps, map_stat
 
     play_trace.reverse()
-    return play_trace, total_steps
+    map_stat.reverse()
+    return play_trace, total_steps, map_stat
 
 
-# This code is for generating the maps
 def render_map(map, prob, rep, filename='', ret_image=False, pause=True):
-    # format image of map for rendering
     if not filename:
         img = prob.render(map)
     else:
@@ -386,15 +329,12 @@ def render_map(map, prob, rep, filename='', ret_image=False, pause=True):
     else:
         ren = rendering.SimpleImageViewer()
         ren.imshow(img)
-        # time.sleep(0.3)
+
         if pause:
             input(f'')
         else:
             time.sleep(.05)
         ren.close()
-
-
-
 
 
 def int_map_to_str_map(curr_map):
@@ -410,38 +350,76 @@ actions_list = [act for act in list(TILES_MAP.values())]
 prob = ZeldaProblem()
 rep = NarrowRepresentation()
 
-
-obs_ep_comobs = [(5, 77, 1), (5, 77, 5)]
+# TODO: Add this to ArgParser
+obs_ep_comobs = [(5, 77, 50), (5, 77, 5)]
 rng, seed = np_random(None)
 epsilon = 0.1
 filepath = 'playable_maps/zelda_lvl{}.txt'
 zelda_tile_distrib = {0: 0.58, 1: 0.3, 2: 0.02, 3: 0.02, 4: 0.02, 5: 0.02, 6: 0.02, 7: 0.02}
 
+
+def check_trajectory_dir_exists(obs_size, goal_set_size):
+    root_trajectory_path = "training_trajectories"
+    if not os.path.exists(root_trajectory_path):
+        os.mkdir(root_trajectory_path)
+    path = f"{root_trajectory_path}/traj_obs_{obs_size}_goal_size_{goal_set_size}"
+    if not os.path.exists(path):
+        os.mkdir(path)
+
+
+
 for obs_size, episode_len, goal_set_size in obs_ep_comobs:
+    check_trajectory_dir_exists(obs_size, goal_set_size)
     dict_len = ((obs_size ** 2) * 8)
     total_steps = 0
+    exp_traj_dict = OrderedDict()
     exp_traj_dict = {f"col_{i}": [] for i in range(dict_len)}
+    exp_traj_dict["num_regions"] = []
+    exp_traj_dict["num_enemies"] = []
+    exp_traj_dict["nearest_enemy"] = []
+    exp_traj_dict["path_length"] = []
     exp_traj_dict["target"] = []
     save_count = 0
     while total_steps < 962500:
         save_count += 1
         play_traces = []
+        map_stats = []
         cropped_wrapper = CroppedImagePCGRLWrapper("zelda-narrow-v0", obs_size,
                                                    **{'change_percentage': 1, 'trials': 1, 'verbose': True,
                                                     'cropped_size': obs_size, 'render': False})
         pcgrl_env = cropped_wrapper.pcgrl_env
         start_map = gen_random_map(rng, 11, 7, {0: 0.58, 1: 0.3, 2: 0.02, 3: 0.02, 4: 0.02, 5: 0.02, 6: 0.02, 7: 0.02})
         goal_map = find_closest_goal_map(start_map, goal_set_size)
-        play_trace, temp_num_steps = generate_pod_greedy(pcgrl_env, start_map, goal_map, total_steps, ep_len=episode_len, crop_size=obs_size, render=False)
+        play_trace, temp_num_steps, map_stat = generate_pod_greedy(pcgrl_env, start_map, goal_map, total_steps, ep_len=episode_len, crop_size=obs_size, render=False)
         total_steps = temp_num_steps
         print(f"(obs={obs_size}, ep_len={episode_len}, data_size={goal_set_size}), total_steps: {total_steps}")
         play_traces.append(play_trace)
+        map_stats.append(map_stat)
 
-
-        for p_i in play_trace:
-            # print(f"p_i is {p_i}")
+        print(f"map_stat is {map_stat}")
+        for i, p_i in enumerate(play_trace):
+            print(f"p_i is {p_i}")
             # print(f"len of p_i is {len(p_i)}")
-            action = p_i[1][-1]
+            action = p_i[-1][-1]
+
+            # Map characteristics here
+            num_regions = map_stat[i][0]
+            num_enemies = map_stat[i][1]
+            nearest_enemy = map_stat[i][2]
+            path_length = map_stat[i][3]
+
+            exp_traj_dict["num_regions"].append(num_regions)
+            exp_traj_dict["num_enemies"].append(num_enemies)
+            exp_traj_dict["nearest_enemy"].append(nearest_enemy)
+            exp_traj_dict["path_length"].append(path_length)
+
+            print(f"num_regions: {num_regions}")
+            print(f"num_enemies: {num_regions}")
+            print(f"nearest_enemy: {num_regions}")
+            print(f"path_length: {num_regions}")
+
+
+
             # print(f"action is {action}")
             exp_traj_dict["target"].append(action)
             pt = p_i[0]
@@ -455,13 +433,18 @@ for obs_size, episode_len, goal_set_size in obs_ep_comobs:
             print(f"saving df at ts {total_steps}")
             df = pd.DataFrame(data=exp_traj_dict)
             df.to_csv(
-                f"pod_exp_traj_obs_{obs_size}_ep_len_77_goal_size_{goal_set_size}/pod_exp_traj_goal_step_{total_steps}.csv",
+                f"training_trajectories/traj_obs_{obs_size}_goal_size_{goal_set_size}/step_{total_steps}.csv",
                 index=False)
+            exp_traj_dict = OrderedDict()
             exp_traj_dict = {f"col_{i}": [] for i in range(dict_len)}
+            exp_traj_dict["num_regions"] = []
+            exp_traj_dict["num_enemies"] = []
+            exp_traj_dict["nearest_enemy"] = []
+            exp_traj_dict["path_length"] = []
             exp_traj_dict["target"] = []
 
     df = pd.DataFrame(data=exp_traj_dict)
-    df.to_csv(f"pod_exp_traj_obs_{obs_size}_ep_len_77_goal_size_{goal_set_size}/pod_exp_traj_goal_step_{total_steps}.csv", index=False)
+    df.to_csv(f"training_trajectories/traj_obs_{obs_size}_goal_size_{goal_set_size}/step_{total_steps}.csv", index=False)
 
 
 

@@ -247,7 +247,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         # Cropping the map to the correct crop_size
         # Vary the crop size to get different sizes: 3, 5, 10, 20 --> measure effect of crop size on generalization
         # (test random)
-        # Test with varying trajectories lengths
+        # Test with varying training_trajectories lengths
         env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
         # print(f"crop_size is {crop_size}")
         # Transform to one hot encoding if not binary

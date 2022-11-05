@@ -31,12 +31,6 @@ class ZeldaProblem(Problem):
         self._width = 11
         self._height = 7
         self._prob = {"empty": 0.58, "solid": 0.3, "player": 0.02, "key": 0.02, "door": 0.02, "bat": 0.02, "scorpion": 0.02, "spider": 0.02}
-        # self._prob = {"empty": 0.3380779220779221, "solid": 0.33947012987012987, "player": 0.08491428571428572, "key": 0.08509090909090909, "door": 0.0836987012987013, "bat": 0.08464415584415584,
-        #               "scorpion": 0.08284675324675325, "spider": 0.08307532467532468}
-        # This dist. matches POD starts
-        # self._prob = {"empty": 0.99, "solid":0.99, "player":0.99, "key": 0.99, "door": 0.99, "bat": 0.99, "scorpion": 0.99, "spider": 0.99}
-        # self._prob = {"empty": 0.01, "solid": 0.01, "player": 0.01, "key": 0.01, "door": 0.01, "bat": 0.01, "scorpion": 0.01, "spider": 0.01}
-        # self._prob = {"empty": 0.01, "solid": 0.01, "player": 0.25, "key": 0.25, "door": 0.25, "bat": 0.25, "scorpion": 0.25, "spider": 0.25}
         self._border_tile = "solid"
 
         self._max_enemies = 7
@@ -96,6 +90,7 @@ class ZeldaProblem(Problem):
         The used status are "reigons": number of connected empty tiles, "path-length": the longest path across the map
     """
     def get_stats(self, map):
+        print(map)
         map_locations = get_tile_locations(map, self.get_tile_types())
         map_stats = {
             "player": calc_certain_tile(map_locations, ["player"]),
