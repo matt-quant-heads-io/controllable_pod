@@ -12,5 +12,5 @@ PROBLEMS = {
     "mdungeon": MDungeonProblem,
     "sokoban": SokobanProblem,
     "zelda": ZeldaProblem,
-    "smb": SMBProblem
+    "smb": SMBProblem,
 }

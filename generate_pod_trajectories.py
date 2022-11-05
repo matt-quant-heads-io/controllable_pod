@@ -24,20 +24,20 @@ import sys
 def to_2d_array_level(file_name):
     level = []
 
-    with open(file_name, 'r') as f:
+    with open(file_name, "r") as f:
         rows = f.readlines()
         for row in rows:
             new_row = []
             for char in row:
-                if char != '\n':
+                if char != "\n":
                     new_row.append(TILES_MAP[char])
             level.append(new_row)
 
     # Remove the border
-    truncated_level = level[1: len(level) - 1]
+    truncated_level = level[1 : len(level) - 1]
     level = []
     for row in truncated_level:
-        new_row = row[1: len(row) - 1]
+        new_row = row[1 : len(row) - 1]
         level.append(new_row)
     return level
 
@@ -53,7 +53,7 @@ def int_arr_from_str_arr(map):
     return int_map
 
 
-def to_char_level(map, dir=''):
+def to_char_level(map, dir=""):
     level = []
 
     for row in map:
@@ -61,18 +61,18 @@ def to_char_level(map, dir=''):
         for col in row:
             new_row.append(REV_TILES_MAP[col])
         # add side borders
-        new_row.insert(0, 'w')
-        new_row.append('w')
+        new_row.insert(0, "w")
+        new_row.append("w")
         level.append(new_row)
-    top_bottom_border = ['w'] * len(level[0])
+    top_bottom_border = ["w"] * len(level[0])
     level.insert(0, top_bottom_border)
     level.append(top_bottom_border)
 
     level_as_str = []
     for row in level:
-        level_as_str.append(''.join(row) + '\n')
+        level_as_str.append("".join(row) + "\n")
 
-    with open(dir, 'w') as f:
+    with open(dir, "w") as f:
         for row in level_as_str:
             f.write(row)
 
@@ -88,46 +88,50 @@ def act_seq_from_disk(path):
     with open(path, "r") as f:
         data = f.readlines()
         for row in data:
-            act_seq = [int(n) for n in row.split('\n')[0].split(',')]
+            act_seq = [int(n) for n in row.split("\n")[0].split(",")]
             act_seqs.append(act_seq)
     return act_seqs
-
-
 
 
 # Test reading in act_seq
 # print(act_seq_from_disk('/Users/matt/gym_pcgrl/gym-pcgil/gym_pcgil/exp_trajectories_const_generated/narrow/init_maps_lvl0/repair_sequence_0.csv'))
 
 """Start with random map"""
+
+
 def gen_random_map(random, width, height, prob):
-    map = random.choice(list(prob.keys()),size=(height,width),p=list(prob.values())).astype(np.uint8)
+    map = random.choice(
+        list(prob.keys()), size=(height, width), p=list(prob.values())
+    ).astype(np.uint8)
     return map
 
 
 def _int_list_from_bigint(bigint):
     # Special case 0
     if bigint < 0:
-        raise error.Error('Seed must be non-negative, not {}'.format(bigint))
+        raise error.Error("Seed must be non-negative, not {}".format(bigint))
     elif bigint == 0:
         return [0]
 
     ints = []
     while bigint > 0:
-        bigint, mod = divmod(bigint, 2 ** 32)
+        bigint, mod = divmod(bigint, 2**32)
         ints.append(mod)
     return ints
+
 
 # TODO: don't hardcode sizeof_int here
 def _bigint_from_bytes(bytes):
     sizeof_int = 4
     padding = sizeof_int - len(bytes) % sizeof_int
-    bytes += b'\0' * padding
+    bytes += b"\0" * padding
     int_count = int(len(bytes) / sizeof_int)
     unpacked = struct.unpack("{}I".format(int_count), bytes)
     accum = 0
     for i, val in enumerate(unpacked):
         accum += 2 ** (sizeof_int * 8 * i) * val
     return accum
+
 
 def create_seed(a=None, max_bytes=8):
     """Create a strong random seed. Otherwise, Python 2 would seed using
@@ -142,15 +146,16 @@ def create_seed(a=None, max_bytes=8):
     if a is None:
         a = _bigint_from_bytes(os.urandom(max_bytes))
     elif isinstance(a, str):
-        a = a.encode('utf8')
+        a = a.encode("utf8")
         a += hashlib.sha512(a).digest()
         a = _bigint_from_bytes(a[:max_bytes])
     elif isinstance(a, int):
-        a = a % 2**(8 * max_bytes)
+        a = a % 2 ** (8 * max_bytes)
     else:
-        raise error.Error('Invalid type for seed: {} ({})'.format(type(a), a))
+        raise error.Error("Invalid type for seed: {} ({})".format(type(a), a))
 
     return a
+
 
 def hash_seed(seed=None, max_bytes=8):
     """Any given evaluation is likely to have many PRNG's active at
@@ -173,13 +178,15 @@ def hash_seed(seed=None, max_bytes=8):
     """
     if seed is None:
         seed = create_seed(max_bytes=max_bytes)
-    hash = hashlib.sha512(str(seed).encode('utf8')).digest()
+    hash = hashlib.sha512(str(seed).encode("utf8")).digest()
     return _bigint_from_bytes(hash[:max_bytes])
 
 
 def np_random(seed=None):
     if seed is not None and not (isinstance(seed, int) and 0 <= seed):
-        raise error.Error('Seed must be a non-negative integer or omitted, not {}'.format(seed))
+        raise error.Error(
+            "Seed must be a non-negative integer or omitted, not {}".format(seed)
+        )
 
     seed = create_seed(seed)
 
@@ -188,17 +195,18 @@ def np_random(seed=None):
     return rng, seed
 
 
-
 def find_closest_goal_map(random_map, data_size):
     smallest_hamming_dist = math.inf
     closest_map = None
-    filepath = 'playable_maps/zelda_lvl{}.txt'
+    filepath = "playable_maps/zelda_lvl{}.txt"
     map_indices = [i for i in range(data_size)]
     random.shuffle(map_indices)
     # print(f"shuffled map indices: {map_indices}")
     while len(map_indices) > 0:
         next_idx = map_indices.pop()
-        curr_goal_map = int_arr_from_str_arr(to_2d_array_level(filepath.format(next_idx)))
+        curr_goal_map = int_arr_from_str_arr(
+            to_2d_array_level(filepath.format(next_idx))
+        )
         temp_hamm_distance = compute_hamm_dist(random_map, curr_goal_map)
         if temp_hamm_distance < smallest_hamming_dist:
             closest_map = curr_goal_map
@@ -220,19 +228,19 @@ def transform(obs, x, y, crop_size):
     size = crop_size
     pad = crop_size // 2
     padded = np.pad(map, pad, constant_values=1)
-    cropped = padded[y:y + size, x:x + size]
+    cropped = padded[y : y + size, x : x + size]
     obs = cropped
     new_obs = []
     for i in range(len(obs)):
         for j in range(len(obs[0])):
-            new_tile = [0]*8
+            new_tile = [0] * 8
             new_tile[obs[i][j]] = 1
             new_obs.extend(new_tile)
     return new_obs
 
 
 def str_arr_from_int_arr(map):
-    translation_map = {v:k for k,v in INT_MAP.items()}
+    translation_map = {v: k for k, v in INT_MAP.items()}
     str_map = []
     for row_idx in range(len(map)):
         new_row = []
@@ -243,9 +251,18 @@ def str_arr_from_int_arr(map):
     return str_map
 
 
-def generate_pod_greedy(env, random_target_map, goal_starting_map, total_steps, ep_len=77, crop_size=9, render=True, epsilon=0.02):
+def generate_pod_greedy(
+    env,
+    random_target_map,
+    goal_starting_map,
+    total_steps,
+    ep_len=77,
+    crop_size=9,
+    render=True,
+    epsilon=0.02,
+):
     """
-        The "no-change" action  is 1 greater than the number of tile types (value is 8)
+    The "no-change" action  is 1 greater than the number of tile types (value is 8)
     """
 
     play_trace = []
@@ -255,8 +272,8 @@ def generate_pod_greedy(env, random_target_map, goal_starting_map, total_steps, 
 
     current_loc = [0, 0]
     env._rep._old_map = np.array([np.array(l) for l in goal_starting_map])
-    env._rep._x = current_loc[1] # 0
-    env._rep._y = current_loc[0] # 0
+    env._rep._x = current_loc[1]  # 0
+    env._rep._y = current_loc[0]  # 0
     row_idx, col_idx = current_loc[0], current_loc[1]
     tile_count = 0
 
@@ -279,10 +296,10 @@ def generate_pod_greedy(env, random_target_map, goal_starting_map, total_steps, 
         string_map_for_map_stats = str_arr_from_int_arr(new_map)
         new_map_stats_dict = env._prob.get_stats(string_map_for_map_stats)
 
-        num_regions = new_map_stats_dict['regions']
-        num_enemies = new_map_stats_dict['enemies']
-        nearest_enemy = new_map_stats_dict['nearest-enemy']
-        path_length = new_map_stats_dict['path-length']
+        num_regions = new_map_stats_dict["regions"]
+        num_enemies = new_map_stats_dict["enemies"]
+        nearest_enemy = new_map_stats_dict["nearest-enemy"]
+        path_length = new_map_stats_dict["path-length"]
 
         expert_action = [row_idx, col_idx, old_tile_type]
         destructive_action = [row_idx, col_idx, new_tile_type]
@@ -291,7 +308,12 @@ def generate_pod_greedy(env, random_target_map, goal_starting_map, total_steps, 
         new_map[row_idx][col_idx] = new_tile_type
 
         map_stat.append((num_regions, num_enemies, nearest_enemy, path_length))
-        play_trace.append((transform(random_map.copy(), col_idx, row_idx, crop_size), expert_action.copy()))
+        play_trace.append(
+            (
+                transform(random_map.copy(), col_idx, row_idx, crop_size),
+                expert_action.copy(),
+            )
+        )
         random_map[row_idx][col_idx] = old_tile_type
         curr_step += 1
         total_steps += 1
@@ -317,7 +339,7 @@ def generate_pod_greedy(env, random_target_map, goal_starting_map, total_steps, 
     return play_trace, total_steps, map_stat
 
 
-def render_map(map, prob, rep, filename='', ret_image=False, pause=True):
+def render_map(map, prob, rep, filename="", ret_image=False, pause=True):
     if not filename:
         img = prob.render(map)
     else:
@@ -331,9 +353,9 @@ def render_map(map, prob, rep, filename='', ret_image=False, pause=True):
         ren.imshow(img)
 
         if pause:
-            input(f'')
+            input(f"")
         else:
-            time.sleep(.05)
+            time.sleep(0.05)
         ren.close()
 
 
@@ -346,6 +368,7 @@ def int_map_to_str_map(curr_map):
         new_level.append(new_row)
     return new_level
 
+
 actions_list = [act for act in list(TILES_MAP.values())]
 prob = ZeldaProblem()
 rep = NarrowRepresentation()
@@ -354,8 +377,17 @@ rep = NarrowRepresentation()
 obs_ep_comobs = [(5, 77, 50), (5, 77, 5)]
 rng, seed = np_random(None)
 epsilon = 0.1
-filepath = 'playable_maps/zelda_lvl{}.txt'
-zelda_tile_distrib = {0: 0.58, 1: 0.3, 2: 0.02, 3: 0.02, 4: 0.02, 5: 0.02, 6: 0.02, 7: 0.02}
+filepath = "playable_maps/zelda_lvl{}.txt"
+zelda_tile_distrib = {
+    0: 0.58,
+    1: 0.3,
+    2: 0.02,
+    3: 0.02,
+    4: 0.02,
+    5: 0.02,
+    6: 0.02,
+    7: 0.02,
+}
 
 
 def check_trajectory_dir_exists(obs_size, goal_set_size):
@@ -367,10 +399,9 @@ def check_trajectory_dir_exists(obs_size, goal_set_size):
         os.mkdir(path)
 
 
-
 for obs_size, episode_len, goal_set_size in obs_ep_comobs:
     check_trajectory_dir_exists(obs_size, goal_set_size)
-    dict_len = ((obs_size ** 2) * 8)
+    dict_len = (obs_size**2) * 8
     total_steps = 0
     exp_traj_dict = OrderedDict()
     exp_traj_dict = {f"col_{i}": [] for i in range(dict_len)}
@@ -384,15 +415,38 @@ for obs_size, episode_len, goal_set_size in obs_ep_comobs:
         save_count += 1
         play_traces = []
         map_stats = []
-        cropped_wrapper = CroppedImagePCGRLWrapper("zelda-narrow-v0", obs_size,
-                                                   **{'change_percentage': 1, 'trials': 1, 'verbose': True,
-                                                    'cropped_size': obs_size, 'render': False})
+        cropped_wrapper = CroppedImagePCGRLWrapper(
+            "zelda-narrow-v0",
+            obs_size,
+            **{
+                "change_percentage": 1,
+                "trials": 1,
+                "verbose": True,
+                "cropped_size": obs_size,
+                "render": False,
+            },
+        )
         pcgrl_env = cropped_wrapper.pcgrl_env
-        start_map = gen_random_map(rng, 11, 7, {0: 0.58, 1: 0.3, 2: 0.02, 3: 0.02, 4: 0.02, 5: 0.02, 6: 0.02, 7: 0.02})
+        start_map = gen_random_map(
+            rng,
+            11,
+            7,
+            {0: 0.58, 1: 0.3, 2: 0.02, 3: 0.02, 4: 0.02, 5: 0.02, 6: 0.02, 7: 0.02},
+        )
         goal_map = find_closest_goal_map(start_map, goal_set_size)
-        play_trace, temp_num_steps, map_stat = generate_pod_greedy(pcgrl_env, start_map, goal_map, total_steps, ep_len=episode_len, crop_size=obs_size, render=False)
+        play_trace, temp_num_steps, map_stat = generate_pod_greedy(
+            pcgrl_env,
+            start_map,
+            goal_map,
+            total_steps,
+            ep_len=episode_len,
+            crop_size=obs_size,
+            render=False,
+        )
         total_steps = temp_num_steps
-        print(f"(obs={obs_size}, ep_len={episode_len}, data_size={goal_set_size}), total_steps: {total_steps}")
+        print(
+            f"(obs={obs_size}, ep_len={episode_len}, data_size={goal_set_size}), total_steps: {total_steps}"
+        )
         play_traces.append(play_trace)
         map_stats.append(map_stat)
 
@@ -418,14 +472,14 @@ for obs_size, episode_len, goal_set_size in obs_ep_comobs:
             print(f"nearest_enemy: {num_regions}")
             print(f"path_length: {num_regions}")
 
-
-
             # print(f"action is {action}")
             exp_traj_dict["target"].append(action)
             pt = p_i[0]
             # print(f"pt is {pt}")
             # print(f"len of pt is {len(pt)}")
-            assert dict_len == len(pt), f"len(pt) is {len(pt)} and dict_len is {dict_len}"
+            assert dict_len == len(
+                pt
+            ), f"len(pt) is {len(pt)} and dict_len is {dict_len}"
             for i in range(len(pt)):
                 exp_traj_dict[f"col_{i}"].append(pt[i])
 
@@ -434,7 +488,8 @@ for obs_size, episode_len, goal_set_size in obs_ep_comobs:
             df = pd.DataFrame(data=exp_traj_dict)
             df.to_csv(
                 f"training_trajectories/traj_obs_{obs_size}_goal_size_{goal_set_size}/step_{total_steps}.csv",
-                index=False)
+                index=False,
+            )
             exp_traj_dict = OrderedDict()
             exp_traj_dict = {f"col_{i}": [] for i in range(dict_len)}
             exp_traj_dict["num_regions"] = []
@@ -444,12 +499,7 @@ for obs_size, episode_len, goal_set_size in obs_ep_comobs:
             exp_traj_dict["target"] = []
 
     df = pd.DataFrame(data=exp_traj_dict)
-    df.to_csv(f"training_trajectories/traj_obs_{obs_size}_goal_size_{goal_set_size}/step_{total_steps}.csv", index=False)
-
-
-
-
-
-
-
-
+    df.to_csv(
+        f"training_trajectories/traj_obs_{obs_size}_goal_size_{goal_set_size}/step_{total_steps}.csv",
+        index=False,
+    )

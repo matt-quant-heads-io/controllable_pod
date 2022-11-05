@@ -6,7 +6,7 @@ from gym_pcgrl.envs.reps import REPRESENTATIONS
 for prob in PROBLEMS.keys():
     for rep in REPRESENTATIONS.keys():
         register(
-            id='{}-{}-v0'.format(prob, rep),
-            entry_point='gym_pcgrl.envs:PcgrlEnv',
-            kwargs={"prob": prob, "rep": rep}
+            id="{}-{}-v0".format(prob, rep),
+            entry_point="gym_pcgrl.envs:PcgrlEnv",
+            kwargs={"prob": prob, "rep": rep},
         )

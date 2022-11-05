@@ -2,14 +2,16 @@ from gym.utils import seeding
 from gym_pcgrl.envs.helper import gen_random_map
 import numpy as np
 
-TILES_MAP = {"g": "door",
-             "+": "key",
-             "A": "player",
-             "1": "bat",
-             "2": "spider",
-             "3": "scorpion",
-             "w": "solid",
-             ".": "empty"}
+TILES_MAP = {
+    "g": "door",
+    "+": "key",
+    "A": "player",
+    "1": "bat",
+    "2": "spider",
+    "3": "scorpion",
+    "w": "solid",
+    ".": "empty",
+}
 
 INT_MAP = {
     "empty": 0,
@@ -19,37 +21,39 @@ INT_MAP = {
     "door": 4,
     "bat": 5,
     "scorpion": 6,
-    "spider": 7
+    "spider": 7,
 }
 
 # For hashing maps to avoid duplicate goal states
-CHAR_MAP = {"door": 'a',
-            "key": 'b',
-            "player": 'c',
-            "bat": 'd',
-            "spider": 'e',
-            "scorpion": 'f',
-            "solid": 'g',
-            "empty": 'h'}
+CHAR_MAP = {
+    "door": "a",
+    "key": "b",
+    "player": "c",
+    "bat": "d",
+    "spider": "e",
+    "scorpion": "f",
+    "solid": "g",
+    "empty": "h",
+}
 
 # Reads in .txt playable map and converts it to string[][]
 def to_2d_array_level(file_name):
     level = []
 
-    with open(file_name, 'r') as f:
+    with open(file_name, "r") as f:
         rows = f.readlines()
         for row in rows:
             new_row = []
             for char in row:
-                if char != '\n':
+                if char != "\n":
                     new_row.append(TILES_MAP[char])
             level.append(new_row)
 
     # Remove the border
-    truncated_level = level[1: len(level) - 1]
+    truncated_level = level[1 : len(level) - 1]
     level = []
     for row in truncated_level:
-        new_row = row[1: len(row) - 1]
+        new_row = row[1 : len(row) - 1]
         level.append(new_row)
     return level
 
@@ -64,13 +68,17 @@ def int_arr_from_str_arr(map):
         int_map.append(new_row)
     return int_map
 
+
 """
 The base class of all the representations
 """
+
+
 class Representation:
     """
     The base constructor where all the representation variable are defined with default values
     """
+
     def __init__(self):
         self._random_start = True
         self._map = None
@@ -88,6 +96,7 @@ class Representation:
     Returns:
         int: the used seed (same as input if not None)
     """
+
     def seed(self, seed=None):
         self._random, seed = seeding.np_random(seed)
         return seed
@@ -100,6 +109,7 @@ class Representation:
         height (int): the generated map height
         prob (dict(int,float)): the probability distribution of each tile value
     """
+
     def reset(self, width, height, prob):
         if self._random_start:
             # print(f"self._random is {self._random}")
@@ -120,7 +130,9 @@ class Representation:
             start_map = "init_map_47.txt"
             temp_map = int_arr_from_str_arr(
                 to_2d_array_level(
-                    f'/gym-pcgil/gym_pcgil/exp_trajectories_const_generated/narrow_greedy/init_maps_lvl4/{start_map}'))
+                    f"/gym-pcgil/gym_pcgil/exp_trajectories_const_generated/narrow_greedy/init_maps_lvl4/{start_map}"
+                )
+            )
             new_map = []
             for row in temp_map:
                 new_map.append(np.array(row))
@@ -131,15 +143,15 @@ class Representation:
             # sys.exit(0)
             self._old_map = self._map.copy()
 
-
     """
     Adjust current representation parameter
 
     Parameters:
         random_start (boolean): if the system will restart with a new map or the previous map
     """
+
     def adjust_param(self, **kwargs):
-        self._random_start = kwargs.get('random_start', self._random_start)
+        self._random_start = kwargs.get("random_start", self._random_start)
 
     """
     Gets the action space used by the representation
@@ -152,8 +164,9 @@ class Representation:
     Returns:
         ActionSpace: the action space used by that representation
     """
+
     def get_action_space(self, width, height, num_tiles):
-        raise NotImplementedError('get_action_space is not implemented')
+        raise NotImplementedError("get_action_space is not implemented")
 
     """
     Get the observation space used by the representation
@@ -166,8 +179,9 @@ class Representation:
     Returns:
         ObservationSpace: the observation space used by that representation
     """
+
     def get_observation_space(self, width, height, num_tiles):
-        raise NotImplementedError('get_observation_space is not implemented')
+        raise NotImplementedError("get_observation_space is not implemented")
 
     """
     Get the current representation observation object at the current moment
@@ -175,8 +189,9 @@ class Representation:
     Returns:
         observation: the current observation at the current moment
     """
+
     def get_observation(self):
-        raise NotImplementedError('get_observation is not implemented')
+        raise NotImplementedError("get_observation is not implemented")
 
     """
     Update the representation with the current action
@@ -187,8 +202,9 @@ class Representation:
     Returns:
         boolean: True if the action change the map, False if nothing changed
     """
+
     def update(self, action):
-        raise NotImplementedError('update is not implemented')
+        raise NotImplementedError("update is not implemented")
 
     """
     Modify the level image with any special modification based on the representation
@@ -201,5 +217,6 @@ class Representation:
     Returns:
         img: the modified level image
     """
+
     def render(self, lvl_image, tile_size, border_size):
         return lvl_image
