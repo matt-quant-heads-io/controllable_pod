@@ -27,7 +27,7 @@ def get_conditional_cnn_model(obs_size, action_dim, num_conditions):
 
     output = Dense(action_dim, activation="softmax")(x)
 
-    conditional_cnn_model = Model(input=inputs, output=output)
+    conditional_cnn_model = Model(inputs, output)
 
     conditional_cnn_model.compile(
         loss="categorical_crossentropy",
