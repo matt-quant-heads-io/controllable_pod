@@ -1,6 +1,6 @@
 # Controllable Path of Destruction
 
 ## Setup
-1. Install dependencies via creating a conda environemnt with the following command
+1. Install dependencies via with the following command (assumes linux OS)
   
-      `conda env create -f env_controllable_pod.yml`
+      `pip3 install -e .`
