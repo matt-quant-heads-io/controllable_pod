@@ -1,4 +1,5 @@
 from keras.layers import Input, Dense, Conv2D, Concatenate, MaxPooling2D, Flatten
+from keras.optimizers import SGD
 from keras.models import Model
 import tensorflow as tf
 
@@ -18,7 +19,7 @@ def get_conditional_cnn_model(obs_size, action_dim, num_conditions):
 
     conditional_cnn_model = Model(input=inputs, output=output)
 
-    conditional_cnn_model.compile(loss='categorical_crossentropy', optimizer='rmsprop',
+    conditional_cnn_model.compile(loss='categorical_crossentropy', optimizer=SGD(),
                        metrics=[tf.keras.metrics.CategoricalAccuracy()])
 
     return conditional_cnn_model
